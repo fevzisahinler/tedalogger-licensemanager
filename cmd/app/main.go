@@ -2,7 +2,10 @@ package main
 
 import (
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"log"
 	_ "os"
 
@@ -12,10 +15,6 @@ import (
 	"tedalogger-licensemanager/internal/customer"
 	"tedalogger-licensemanager/internal/database"
 	"tedalogger-licensemanager/internal/license"
-
-	"crypto/x509"
-	"encoding/pem"
-	"io/ioutil"
 )
 
 func ParsePrivateKey(path string) (*rsa.PrivateKey, error) {
@@ -27,9 +26,13 @@ func ParsePrivateKey(path string) (*rsa.PrivateKey, error) {
 	if block == nil {
 		return nil, fmt.Errorf("failed to parse PEM")
 	}
-	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	keyInterface, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		return nil, err
+	}
+	key, ok := keyInterface.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("not RSA private key")
 	}
 	return key, nil
 }

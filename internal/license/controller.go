@@ -3,12 +3,10 @@ package license
 import (
 	"crypto/rsa"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"tedalogger-licensemanager/internal/customer"
 )
 
 func CreateLicenseHandler(privateKey *rsa.PrivateKey) fiber.Handler {
@@ -43,20 +41,10 @@ func CreateLicenseHandler(privateKey *rsa.PrivateKey) fiber.Handler {
 			})
 		}
 
-		var modules LicenseModules
-		json.Unmarshal([]byte(licModel.ModulesJSON), &modules)
-
-		out := LicenseOutput{
-			LicenseID:   licModel.LicenseID,
-			CustomerID:  licModel.CustomerID,
-			Modules:     modules,
-			ValidFrom:   licModel.ValidFrom,
-			ValidUntil:  licModel.ValidUntil,
-			MachineID:   licModel.MachineID,
-			GracePeriod: licModel.GracePeriod,
-			Signature:   licModel.Signature,
-		}
-		return c.JSON(out)
+		// Artık yalnızca oluşturulan lisans anahtarını (license_id) döndürüyoruz.
+		return c.JSON(fiber.Map{
+			"license": licModel.LicenseID,
+		})
 	}
 }
 
@@ -127,7 +115,7 @@ func DeleteLicenseHandler(c *fiber.Ctx) error {
 	if err := DeleteLicense(uint(id)); err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error":   true,
-			"message": fmt.Sprintf("delete error: %v", err),
+			"message": err.Error(),
 		})
 	}
 	return c.JSON(fiber.Map{

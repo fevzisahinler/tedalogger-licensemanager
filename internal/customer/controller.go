@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"tedalogger-licensemanager/internal/models"
 )
 
 func CreateCustomerHandler(c *fiber.Ctx) error {
-	var cust Customer
+	var cust models.Customer
 	if err := c.BodyParser(&cust); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
 			"error":   true,

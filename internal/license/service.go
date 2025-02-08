@@ -8,20 +8,47 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"gorm.io/gorm"
 	"tedalogger-licensemanager/internal/database"
-	_ "time"
+	"tedalogger-licensemanager/internal/models"
 )
 
-func GenerateAndStoreLicense(input LicenseInput, privateKey *rsa.PrivateKey) (License, error) {
+const licenseKeyCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func generateLicenseKey() (string, error) {
+	keyLength := 25
+	b := make([]byte, keyLength)
+	for i := 0; i < keyLength; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(licenseKeyCharset))))
+		if err != nil {
+			return "", err
+		}
+		b[i] = licenseKeyCharset[num.Int64()]
+	}
+	return fmt.Sprintf("%s-%s-%s-%s-%s",
+		string(b[0:5]),
+		string(b[5:10]),
+		string(b[10:15]),
+		string(b[15:20]),
+		string(b[20:25]),
+	), nil
+}
+
+func GenerateAndStoreLicense(input LicenseInput, privateKey *rsa.PrivateKey) (models.License, error) {
 	modulesBytes, err := json.Marshal(input.Modules)
 	if err != nil {
-		return License{}, fmt.Errorf("modules JSON error: %w", err)
+		return models.License{}, fmt.Errorf("modules JSON error: %w", err)
 	}
 
-	licModel := License{
-		LicenseID:   input.LicenseID,
+	licenseKey, err := generateLicenseKey()
+	if err != nil {
+		return models.License{}, fmt.Errorf("failed to generate license key: %w", err)
+	}
+
+	licModel := models.License{
+		LicenseID:   licenseKey,
 		CustomerID:  input.CustomerID,
 		ModulesJSON: string(modulesBytes),
 		ValidFrom:   input.ValidFrom,
@@ -31,7 +58,7 @@ func GenerateAndStoreLicense(input LicenseInput, privateKey *rsa.PrivateKey) (Li
 	}
 
 	if err := database.DB.Create(&licModel).Error; err != nil {
-		return License{}, fmt.Errorf("db create error: %w", err)
+		return models.License{}, fmt.Errorf("db create error: %w", err)
 	}
 
 	outForSign := LicenseOutput{
@@ -67,8 +94,8 @@ func GenerateAndStoreLicense(input LicenseInput, privateKey *rsa.PrivateKey) (Li
 	return licModel, nil
 }
 
-func GetLicenseByID(id uint) (License, error) {
-	var lic License
+func GetLicenseByID(id uint) (models.License, error) {
+	var lic models.License
 	err := database.DB.First(&lic, id).Error
 	if err != nil {
 		return lic, err
@@ -76,8 +103,8 @@ func GetLicenseByID(id uint) (License, error) {
 	return lic, nil
 }
 
-func ListLicenses() ([]License, error) {
-	var list []License
+func ListLicenses() ([]models.License, error) {
+	var list []models.License
 	if err := database.DB.Find(&list).Error; err != nil {
 		return nil, err
 	}
@@ -85,7 +112,7 @@ func ListLicenses() ([]License, error) {
 }
 
 func DeleteLicense(id uint) error {
-	return database.DB.Delete(&License{}, id).Error
+	return database.DB.Delete(&models.License{}, id).Error
 }
 
 func CheckCustomerExists(customerID uint) error {

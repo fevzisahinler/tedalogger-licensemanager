@@ -6,8 +6,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"tedalogger-licensemanager/internal/customer"
-	"tedalogger-licensemanager/internal/license"
+	"tedalogger-licensemanager/internal/models"
 )
 
 var DB *gorm.DB
@@ -19,8 +18,8 @@ func Connect(dsn string) error {
 	}
 
 	if err := db.AutoMigrate(
-		&customer.Customer{},
-		&license.License{},
+		&models.Customer{},
+		&models.License{},
 	); err != nil {
 		return err
 	}

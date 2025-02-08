@@ -1,8 +1,6 @@
-package license
+package models
 
-import (
-	"time"
-)
+import "time"
 
 type License struct {
 	ID          uint      `gorm:"primaryKey"`
