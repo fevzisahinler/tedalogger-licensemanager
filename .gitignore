@@ -24,3 +24,7 @@ go.work.sum
 # env file
 .env
 .idea
+private_key.pem.pem
+public_key.pem
+aes.key
+

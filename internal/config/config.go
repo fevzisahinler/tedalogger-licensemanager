@@ -1,61 +1,49 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
+	Port           string
 	DBHost         string
-	DBPort         int
+	DBPort         string
 	DBUser         string
-	DBPass         string
+	DBPassword     string
 	DBName         string
 	PrivateKeyPath string
-	AppPort        int
+	PublicKeyPath  string
+	AESKeyPath     string
 }
 
-func LoadConfig() *Config {
-	if err := godotenv.Load(); err != nil {
-		log.Printf("[WARN] .env dosyası okunamadı: %v", err)
-	}
-
-	cfg := &Config{}
-	cfg.DBHost = getEnv("DB_HOST", "localhost")
-	cfg.DBPort = getEnvAsInt("DB_PORT", 5432)
-	cfg.DBUser = getEnv("DB_USER", "postgres")
-	cfg.DBPass = getEnv("DB_PASS", "postgres")
-	cfg.DBName = getEnv("DB_NAME", "license_db")
-	cfg.PrivateKeyPath = getEnv("PRIVATE_KEY_PATH", "./private_rsa.pem")
-	cfg.AppPort = getEnvAsInt("APP_PORT", 4000)
-	return cfg
-}
-
-func getEnv(key string, defaultVal string) string {
-	if val := os.Getenv(key); val != "" {
-		return val
-	}
-	return defaultVal
-}
-
-func getEnvAsInt(key string, defaultVal int) int {
-	strVal := os.Getenv(key)
-	if strVal == "" {
-		return defaultVal
-	}
-	intVal, err := strconv.Atoi(strVal)
+func LoadConfig() (*Config, error) {
+	err := godotenv.Load()
 	if err != nil {
-		return defaultVal
+		log.Println("No .env file found, using environment variables")
 	}
-	return intVal
+
+	config := &Config{
+		Port:           getEnv("PORT", "3000"),
+		DBHost:         getEnv("DB_HOST", "localhost"),
+		DBPort:         getEnv("DB_PORT", "5432"),
+		DBUser:         getEnv("DB_USER", "postgres"),
+		DBPassword:     getEnv("DB_PASSWORD", "postgres"),
+		DBName:         getEnv("DB_NAME", "licensemanager"),
+		PrivateKeyPath: getEnv("PRIVATE_KEY_PATH", "./keys/private_key.pem"),
+		PublicKeyPath:  getEnv("PUBLIC_KEY_PATH", "./keys/public_key.pem"),
+		AESKeyPath:     getEnv("AES_KEY_PATH", "./keys/aes.key"),
+	}
+
+	return config, nil
 }
 
-func (c *Config) GetDBConnectionString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		c.DBHost, c.DBPort, c.DBUser, c.DBPass, c.DBName,
-	)
+func getEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }

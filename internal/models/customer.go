@@ -1,11 +1,13 @@
 package models
 
-import "time"
+import "gorm.io/gorm"
 
 type Customer struct {
-	ID        uint   `gorm:"primaryKey"`
-	Name      string `gorm:"not null;uniqueIndex"`
-	Email     string `gorm:"not null;uniqueIndex"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	gorm.Model
+	CompanyName string    `json:"company_name"`
+	Name        string    `json:"name"`
+	Surname     string    `json:"surname"`
+	PhoneNumber string    `json:"phone_number"`
+	Email       string    `json:"email"`
+	Licenses    []License `json:"licenses"`
 }
