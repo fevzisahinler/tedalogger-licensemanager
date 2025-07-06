@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -12,16 +13,17 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
 
 type License struct {
 	CustomerID    string    `json:"customer_id"`
-	Features      []string  `json:"features"`
-	MaxUsers      int       `json:"max_users"`
-	MaxNASDevices int       `json:"max_nas_devices"`
 	ExpiryDate    time.Time `json:"expiry_date"`
+	Features      []string  `json:"features"`
+	MaxNASDevices int       `json:"max_nas_devices"`
+	MaxUsers      int       `json:"max_users"`
 	Signature     string    `json:"signature"`
 }
 
@@ -35,7 +37,7 @@ func main() {
 	outFile := flag.String("out", "license.json", "Output license file")
 	flag.Parse()
 
-	// Parse expiry date with better error handling and format flexibility
+	// Parse expiry date
 	expiryTime, err := parseExpiryDate(*expiry)
 	if err != nil {
 		fmt.Printf("Error: invalid expiry date => %v\n", err)
@@ -128,15 +130,15 @@ func main() {
 		ExpiryDate:    expiryTime,
 	}
 
-	// Marshal license without signature for signing
-	dNoSig, err := json.Marshal(lic)
-	if err != nil {
-		fmt.Printf("Error: cannot marshal license => %v\n", err)
-		os.Exit(1)
-	}
+	// Deterministik JSON oluştur ve imzala
+	licenseData := createDeterministicJSON(&lic)
+	fmt.Printf("License data to sign: %s\n", licenseData)
 
-	// Sign the license
-	sig, err := ecdsa.SignASN1(rand.Reader, privKey, dNoSig)
+	// SHA256 hash
+	hash := sha256.Sum256([]byte(licenseData))
+
+	// Sign the hash
+	sig, err := ecdsa.SignASN1(rand.Reader, privKey, hash[:])
 	if err != nil {
 		fmt.Printf("Error: sign failed => %v\n", err)
 		os.Exit(1)
@@ -145,7 +147,7 @@ func main() {
 	// Add signature to license
 	lic.Signature = base64.StdEncoding.EncodeToString(sig)
 
-	// Marshal final license with signature
+	// Marshal final license with signature (field sırası önemli)
 	finalBytes, err := json.MarshalIndent(lic, "", "  ")
 	if err != nil {
 		fmt.Printf("Error: cannot marshal final license => %v\n", err)
@@ -158,12 +160,46 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("License generated successfully -> %s\n", *outFile)
+	fmt.Printf("\nLicense generated successfully -> %s\n", *outFile)
 	fmt.Printf("Customer: %s\n", lic.CustomerID)
 	fmt.Printf("Features: %s\n", strings.Join(lic.Features, ", "))
 	fmt.Printf("Max Users: %d\n", lic.MaxUsers)
 	fmt.Printf("Max NAS Devices: %d\n", lic.MaxNASDevices)
 	fmt.Printf("Expiry Date: %s\n", lic.ExpiryDate.Format(time.RFC3339))
+	fmt.Printf("\nSignature: %s\n", lic.Signature)
+}
+
+// Deterministik JSON string oluştur (signature hariç)
+func createDeterministicJSON(l *License) string {
+	// Features array'ini sırala
+	sortedFeatures := make([]string, len(l.Features))
+	copy(sortedFeatures, l.Features)
+	sort.Strings(sortedFeatures)
+
+	// Sabit format ile JSON oluştur
+	return fmt.Sprintf(`{"customer_id":"%s","expiry_date":"%s","features":%s,"max_nas_devices":%d,"max_users":%d}`,
+		l.CustomerID,
+		l.ExpiryDate.Format(time.RFC3339),
+		toJSONArray(sortedFeatures),
+		l.MaxNASDevices,
+		l.MaxUsers,
+	)
+}
+
+// String array'i JSON array string'e çevir
+func toJSONArray(arr []string) string {
+	if len(arr) == 0 {
+		return "[]"
+	}
+	result := "["
+	for i, v := range arr {
+		if i > 0 {
+			result += ","
+		}
+		result += fmt.Sprintf(`"%s"`, v)
+	}
+	result += "]"
+	return result
 }
 
 // parseExpiryDate parses expiry date with multiple format support

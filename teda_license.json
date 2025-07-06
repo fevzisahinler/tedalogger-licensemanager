@@ -1,0 +1,11 @@
+{
+  "customer_id": "TEDA",
+  "expiry_date": "2026-01-01T00:00:00Z",
+  "features": [
+    "5651_logging",
+    "captive_portal"
+  ],
+  "max_nas_devices": 101,
+  "max_users": 1000,
+  "signature": "MEYCIQCggkbm9kVTajC+s/sdaxcBlAfPldKlfcpG6zw+7rvxwgIhAK/k4AtPlwpyBRX0rpHSkI+7hYwvLR2xBIQipuVaZ6Gc"
+}

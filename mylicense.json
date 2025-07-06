@@ -6,6 +6,6 @@
   ],
   "max_users": 1000,
   "max_nas_devices": 10,
-  "expiry_date": "2027-01-01T00:00:00Z",
-  "signature": "MEUCIAnFpd0m6gXQqnLoGOqJw7KfePk1kxWsRqOYOdXAkNnLAiEA+IMs7uw8cO9n3qweDZuXSOGu/W3GpEElgsG86HqrS7A="
+  "expiry_date": "2026-01-01T00:00:00Z",
+  "signature": "MEQCIGf9NOniFaLVLGwJcGTIXsA9mOvJqe8v+QTYfX+1IOUSAiBmCtHK6nPSeUpCdKSeKvmb7Zb7eEBjvsQo18NyL91jaw=="
 }
